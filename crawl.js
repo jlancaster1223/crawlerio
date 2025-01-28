@@ -12,7 +12,11 @@ let visited = [];
 let queue = [];
 
 // Rate limiting: Define delay between requests in milliseconds
-const RATE_LIMIT_DELAY = 500; // 1 second delay between requests
+const RATE_LIMIT_DELAY = 1000; // 1 second delay between requests
+
+// For the loading bar
+let totalLinks = 0; // Total links to be processed (updated dynamically)
+let processedLinks = 0; // Count of processed links
 
 // Validate the input URL
 if (!url || !urlObj.protocol || !urlObj.hostname || (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:')) {
@@ -26,11 +30,23 @@ const outputFile = fs.createWriteStream('output.csv');
 writer.pipe(outputFile);
 
 queue.push(url);
+totalLinks = 1; // Initialize with the starting URL
+
+function updateProgressBar() {
+    const progress = Math.min((processedLinks / totalLinks) * 100, 100).toFixed(2);
+    const barLength = 30; // Length of the progress bar in characters
+    const filledBarLength = Math.round((progress / 100) * barLength);
+    const bar = '='.repeat(filledBarLength) + '-'.repeat(barLength - filledBarLength);
+
+    process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+    process.stdout.write(`[${bar}] ${progress}%`);
+}
 
 function crawl() {
     if (queue.length === 0) {
         writer.end();
-        console.log('Crawling completed. Please check output.csv file');
+        console.log('\nCrawling completed. Please check output.csv file');
         return;
     }
 
@@ -59,8 +75,11 @@ function crawl() {
     // Delay the request using setTimeout for rate limiting
     setTimeout(() => {
         request(currentUrl, (error, response, body) => {
+            processedLinks++;
+            updateProgressBar(); // Update the progress bar after processing a link
+
             if (error) {
-                console.log(`Error fetching ${currentUrl}:`, error.message);
+                // console.log(`\nError fetching ${currentUrl}:`, error.message);
                 crawl();
                 return;
             }
@@ -85,6 +104,7 @@ function crawl() {
                     const fullUrl = linkObj.toString();
                     if ((linkObj.protocol === 'http:' || linkObj.protocol === 'https:') && !visited.includes(fullUrl)) {
                         queue.push(fullUrl);
+                        totalLinks++; // Increment the total links count dynamically
                     }
                 }
             });
@@ -94,4 +114,6 @@ function crawl() {
     }, RATE_LIMIT_DELAY);
 }
 
+console.log('Starting crawl...');
+updateProgressBar(); // Initialize the progress bar
 crawl();
