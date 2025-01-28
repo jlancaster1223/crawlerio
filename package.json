@@ -1,0 +1,9 @@
+{
+    "dependencies": {
+        "fs-extra": "^11.2.0",
+        "request": "^2.88.2",
+        "cheerio": "^1.0.0-rc.3",
+        "url-parse": "1.5.10",
+        "csv-write-stream": "2.0.0"
+    }
+}
